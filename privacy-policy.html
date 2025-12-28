@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ELE Suite Extension — Privacy Policy</title>
+  <style>
+    body{font-family:system-ui,Segoe UI,Arial,sans-serif;line-height:1.5;margin:24px;color:#111}
+    h1,h2{color:#0b5ed7}
+    section{margin-bottom:18px}
+    small{color:#444}
+  </style>
+</head>
+<body>
+  <h1>Privacy Policy — ELE Suite Browser Extension</h1>
+  <p class="intro">Last updated: December 28, 2025</p>
+
+  <section>
+    <h2>Summary</h2>
+    <p>This extension enhances Panopto/course pages with playback speed controls, lecture completion checkboxes, and a notes link feature. It collects minimal data required to provide those features and gives you control over what is stored or synced.</p>
+  </section>
+
+  <section>
+    <h2>Data We Collect</h2>
+    <ul>
+      <li><strong> Logged-in email (optional):</strong> The extension attempts to read the currently logged-in user's email from the locally accessible <code>/user/profile.php</code> page in order to enable optional cloud syncing of your data. If it cannot find an email, cloud sync is not attempted.</li>
+      <li><strong>Lecture completion state:</strong> When you check or uncheck a lecture, the extension stores a simple completed flag per lecture URL.</li>
+      <li><strong>Notes links:</strong> If you attach a notes link to a lecture (a URL you provide), that link is stored and may be synced if you enable cloud sync.</li>
+      <li><strong>Local UI settings:</strong> Playback speed preferences are stored in the browser's <code>localStorage</code> (key: <code>panopto_custom_speed</code>) and some UI state is stored in the extension's local storage (e.g., completion data under a key like <code>panopto-completed-&lt;courseId&gt;</code>).</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Where Data Is Stored</h2>
+    <ul>
+      <li><strong>Local browser storage:</strong> Completion state and notes are stored locally using the extension storage (Chrome/Chromium extension storage) and <code>localStorage</code>. This data remains on your device until you clear it or remove the extension.</li>
+      <li><strong>Optional cloud sync:</strong> If an email is available, the extension offers an optional cloud sync feature that posts/gets your data to an external sync endpoint operated by the extension author. The service stores only the completion flags and notes links associated with the provided email. Cloud sync is optional and can be disabled by not providing an email-accessible profile or by clearing sync data.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>How We Use Your Data</h2>
+    <p>Collected information is used only to:</p>
+    <ul>
+      <li>Display and persist which lectures you have marked as completed.</li>
+      <li>Store and open notes links you attach to a lecture.</li>
+      <li>Apply playback speed settings (local only) and, if enabled, sync your completion/notes between devices via the optional cloud endpoint.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Third-Party Services</h2>
+    <p>The optional cloud sync uses a remote endpoint to save and retrieve your completion/notes data. If you enable that feature, your data will be transmitted to and stored on that service. The extension does not automatically share your data with any other third parties.</p>
+  </section>
+
+  <section>
+    <h2>Security</h2>
+    <p>We take reasonable measures to protect data transmitted to the optional cloud sync service, but no transmission over the internet is 100% secure. Notes links you save may reference resources that require login — if you want them to remain private, prefer storing links that require account-based access or avoid using cloud sync.</p>
+  </section>
+
+  <section>
+    <h2>Your Choices</h2>
+    <ul>
+      <li><strong>Disable cloud sync:</strong> Do not allow the extension to access a profile email (or remove any stored email) to avoid cloud sync attempts.</li>
+      <li><strong>Remove local data:</strong> You can clear the extension's stored data via your browser's extension storage settings or by clearing site/local storage used by the extension. Clearing <code>localStorage</code> will remove playback speed preferences (key: <code>panopto_custom_speed</code>).</li>
+      <li><strong>Delete notes & completions:</strong> You can uncheck items to remove completion flags locally. To remove notes links, edit or delete them via the extension UI. If you have used cloud sync, you can delete synced data by clearing the stored data in the extension and (if supported) using the cloud sync UI or contacting the operator (see Contact below).</li>
+      <li><strong>Uninstall:</strong> Removing the extension deletes its local storage; check your browser's extension removal flow for details.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Retention</h2>
+    <p>Local data is retained until you clear it or uninstall the extension. Data stored on the optional cloud sync service is retained until you or the operator delete it.</p>
+  </section>
+
+  <section>
+    <h2>Contact</h2>
+    <p>If you have questions about this privacy policy, data stored by the extension, or would like your cloud-synced data removed, contact the extension operator at: <strong>ele-suite@local</strong> (replace with the operator's actual contact email if desired).</p>
+  </section>
+
+  <section>
+    <h2>Changes to This Policy</h2>
+    <p>We may update this policy from time to time. When we do, we will update the "Last updated" date at the top of this page.</p>
+  </section>
+
+  <footer>
+    <small>Note: This policy describes how the ELE Suite extension behaves based on the extension's source code. It is provided for informational purposes and does not replace any platform or store policies.</small>
+  </footer>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "ELE Suite",
+  "version": "1.1",
+  "description": "Track completed Panopto recordings on ELE, and allow for playback speeds above 2x on Panopto.",
+  "content_scripts": [
+    {
+      "matches": [
+        "https://ele.exeter.ac.uk/course/view.php*",
+        "https://recapexeter.cloud.panopto.eu/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "permissions": ["storage"]
+}
