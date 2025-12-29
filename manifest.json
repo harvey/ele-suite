@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "ELE Suite",
-  "version": "1.1",
+  "version": "1.2",
   "description": "Track completed Panopto recordings on ELE, and allow for playback speeds above 2x on Panopto.",
   "content_scripts": [
     {

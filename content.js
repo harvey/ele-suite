@@ -8,7 +8,28 @@ const STORAGE_KEY = `panopto-completed-${COURSE_ID}`;
 
 const WORKER_URL = "https://ele-suite.harveychandler235.workers.dev";
 const API_KEY = "supersecret123"; // optional: prevents random external requests
-const SYNC_KEY = "panopto_sync_enabled"; // localStorage key: '1' = enabled, '0' = disabled
+const SYNC_KEY = "panopto_sync_enabled"; // chrome.storage.local key for sync setting
+
+// Helper wrappers for chrome.storage.local with Promise API
+function getChromeStorage(keys) {
+  return new Promise((resolve) => {
+    try {
+      chrome.storage.local.get(keys, (res) => resolve(res || {}));
+    } catch (e) {
+      resolve({});
+    }
+  });
+}
+
+function setChromeStorage(obj) {
+  return new Promise((resolve) => {
+    try {
+      chrome.storage.local.set(obj, () => resolve());
+    } catch (e) {
+      resolve();
+    }
+  });
+}
 
 /* ---------------- Cached email ---------------- */
 
@@ -169,29 +190,42 @@ function addNotesModal(title, initial, onSave) {
 
 /* ---------------- Sync setting helpers & UI ---------------- */
 
-function isSyncEnabled() {
-  try {
-    return localStorage.getItem(SYNC_KEY) === "1";
-  } catch (e) {
+let syncEnabledCached = null;
+
+async function isSyncEnabled() {
+  if (syncEnabledCached !== null) return !!syncEnabledCached;
+  const res = await getChromeStorage([SYNC_KEY]);
+  if (res[SYNC_KEY] === undefined) {
+    // fall back to site localStorage if present (migration path)
+    try {
+      const v = localStorage.getItem(SYNC_KEY);
+      if (v !== null) {
+        syncEnabledCached = v === "1";
+        await setChromeStorage({ [SYNC_KEY]: syncEnabledCached });
+        return syncEnabledCached;
+      }
+    } catch (e) {}
     return false;
   }
+  syncEnabledCached = res[SYNC_KEY] === true || res[SYNC_KEY] === "1" || res[SYNC_KEY] === 1;
+  return !!syncEnabledCached;
 }
 
-function setSyncEnabled(enabled) {
-  try {
-    localStorage.setItem(SYNC_KEY, enabled ? "1" : "0");
-  } catch (e) {}
+async function setSyncEnabled(enabled) {
+  syncEnabledCached = !!enabled;
+  await setChromeStorage({ [SYNC_KEY]: !!enabled });
 }
 
-function showSyncOptInIfNeeded() {
-  if (localStorage.getItem(SYNC_KEY) !== null) return;
+async function showSyncOptInIfNeeded() {
+  const res = await getChromeStorage([SYNC_KEY]);
+  if (res[SYNC_KEY] !== undefined) return;
 
   const p = document.createElement("p");
   p.textContent = "Would you like to enable optional cloud sync so your lecture completions and notes links can be available across your devices?";
 
   showModal("Enable cloud sync?", p, [
-    { label: "No — Keep local", onClick: (close) => { setSyncEnabled(false); close(); } },
-    { label: "Yes — Sync across devices", onClick: (close) => { setSyncEnabled(true); close(); } }
+    { label: "No — Keep local", onClick: async (close) => { await setSyncEnabled(false); close(); } },
+    { label: "Yes — Sync across devices", onClick: async (close) => { await setSyncEnabled(true); close(); } }
   ]);
 }
 
@@ -200,16 +234,19 @@ function addSyncToggleButton() {
   const btn = document.createElement("button");
   btn.id = "panoptoSyncToggleBtn";
   btn.style = "position:fixed;right:12px;bottom:12px;z-index:9998;padding:8px 10px;border-radius:6px;border:1px solid rgba(0,0,0,0.08);background:#fff;box-shadow:0 2px 6px rgba(0,0,0,0.08);cursor:pointer;font-size:0.9rem;";
-  const updateLabel = () => {
-    btn.textContent = `Sync: ${isSyncEnabled() ? "On" : "Off"}`;
+
+  const updateLabel = async () => {
+    const on = await isSyncEnabled();
+    btn.textContent = `Sync: ${on ? "On" : "Off"}`;
   };
 
-  btn.onclick = () => {
+  btn.onclick = async () => {
+    const current = await isSyncEnabled();
     const p = document.createElement("p");
-    p.innerHTML = `Current sync: <strong>${isSyncEnabled() ? "On" : "Off"}</strong>.\nEnable cloud sync to back up and share your completion state and notes links across devices.`;
+    p.innerHTML = `Current sync: <strong>${current ? "On" : "Off"}</strong>.<br/>Enable cloud sync to back up and share your completion state and notes links across devices.`;
     showModal("Sync settings", p, [
-      { label: "Disable", onClick: (close) => { setSyncEnabled(false); updateLabel(); close(); } },
-      { label: "Enable", onClick: (close) => { setSyncEnabled(true); updateLabel(); close(); } },
+      { label: "Disable", onClick: async (close) => { await setSyncEnabled(false); await updateLabel(); close(); } },
+      { label: "Enable", onClick: async (close) => { await setSyncEnabled(true); await updateLabel(); close(); } },
       { label: "Close", onClick: (close) => close() }
     ]);
   };
@@ -251,7 +288,7 @@ async function inject() {
   );
 
   const email = await getEmailOnce(); // fetch logged-in email if available
-  const syncEnabled = isSyncEnabled();
+  const syncEnabled = await isSyncEnabled();
 
   let cloudData = {};
   if (syncEnabled && email) {
@@ -278,7 +315,7 @@ async function inject() {
         data[key].completed = cb.checked;
         chrome.storage.local.set({ [STORAGE_KEY]: data });
         styleLink(link, cb.checked);
-          if (isSyncEnabled() && email) await saveCompletionsCloudflare(email, data);
+          if (await isSyncEnabled() && email) await saveCompletionsCloudflare(email, data);
       };
 
       styleLink(link, cb.checked);
@@ -303,18 +340,18 @@ async function inject() {
         const url = data[key].notesUrl;
 
         if (!url) {
-          addNotesModal(title, "", (newUrl) => {
+          addNotesModal(title, "", async (newUrl) => {
             data[key].notesUrl = newUrl;
             chrome.storage.local.set({ [STORAGE_KEY]: data });
-              if (isSyncEnabled() && email) saveCompletionsCloudflare(email, data);
+            if (await isSyncEnabled() && email) await saveCompletionsCloudflare(email, data);
             notes.style.color = "#1a73e8";
           });
         } else {
           openNotesModal(title, url, () => {
-            addNotesModal(title, url, (newUrl) => {
+            addNotesModal(title, url, async (newUrl) => {
               data[key].notesUrl = newUrl;
               chrome.storage.local.set({ [STORAGE_KEY]: data });
-                if (isSyncEnabled() && email) saveCompletionsCloudflare(email, data);
+              if (await isSyncEnabled() && email) await saveCompletionsCloudflare(email, data);
             });
           });
         }
@@ -382,15 +419,7 @@ function addSpeedMenuIfPresent() {
   ul.appendChild(li);
   ul.parentElement && ul.parentElement.appendChild(sliderContainer);
 
-  // Initialize from storage
-  const stored = (() => {
-    try {
-      return JSON.parse(localStorage.getItem("panopto_custom_speed") || "null");
-    } catch (e) {
-      return null;
-    }
-  })() || { value: 1, startup: false };
-
+  // Initialize UI with defaults, then load stored settings from chrome.storage.local (fallback to site localStorage)
   const slider = sliderContainer.querySelector("#dynamicSlider");
   const sliderValue = sliderContainer.querySelector("#sliderValue");
   const startup = sliderContainer.querySelector("#startupSpeed");
@@ -404,8 +433,29 @@ function addSpeedMenuIfPresent() {
     if (speedLabel) speedLabel.textContent = `${fmt}x`;
   };
 
-  setUI(stored.value || 1);
-  if (startup) startup.checked = !!stored.startup;
+  setUI(1);
+  if (startup) startup.checked = false;
+
+  // Load persisted speed settings (async). Prefer chrome.storage, fall back to site localStorage for migration.
+  (async () => {
+    try {
+      const res = await getChromeStorage(["panopto_custom_speed"]);
+      let stored = res["panopto_custom_speed"];
+      if (!stored) {
+        try {
+          stored = JSON.parse(localStorage.getItem("panopto_custom_speed") || "null");
+        } catch (e) {
+          stored = null;
+        }
+      }
+      stored = stored || { value: 1, startup: false };
+      setUI(stored.value || 1);
+      if (startup) startup.checked = !!stored.startup;
+      if (stored.startup) applySpeedToVideo(stored.value || 1);
+    } catch (e) {
+      // ignore
+    }
+  })();
 
   function applySpeedToVideo(val) {
     const videos = document.querySelectorAll("video");
@@ -448,15 +498,15 @@ function addSpeedMenuIfPresent() {
   });
 
   // Slider interactions
-  slider && slider.addEventListener("input", (e) => {
+  slider && slider.addEventListener("input", async (e) => {
     const v = Number(e.target.value);
     setUI(v);
     applySpeedToVideo(v);
-    localStorage.setItem("panopto_custom_speed", JSON.stringify({ value: v, startup: !!startup.checked }));
+    await setChromeStorage({ panopto_custom_speed: { value: v, startup: !!startup.checked } });
   });
 
   // Click to edit numeric value
-  sliderValue && sliderValue.addEventListener("click", () => {
+  sliderValue && sliderValue.addEventListener("click", async () => {
     const current = parseFloat(slider.value || "1");
     const input = prompt("Enter playback speed (0.5 - 3):", String(current));
     if (!input) return;
@@ -464,13 +514,13 @@ function addSpeedMenuIfPresent() {
     setUI(num);
     if (slider) slider.value = String(num);
     applySpeedToVideo(num);
-    localStorage.setItem("panopto_custom_speed", JSON.stringify({ value: num, startup: !!startup.checked }));
+    await setChromeStorage({ panopto_custom_speed: { value: num, startup: !!startup.checked } });
   });
 
   // Startup checkbox
-  startup && startup.addEventListener("change", () => {
+  startup && startup.addEventListener("change", async () => {
     const v = Number(slider.value || "1");
-    localStorage.setItem("panopto_custom_speed", JSON.stringify({ value: v, startup: !!startup.checked }));
+    await setChromeStorage({ panopto_custom_speed: { value: v, startup: !!startup.checked } });
   });
 
   // If startup enabled, apply immediately
